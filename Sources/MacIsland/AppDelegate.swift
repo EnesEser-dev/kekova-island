@@ -3,10 +3,22 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: IslandController?
     private let nowPlaying = NowPlayingService()
+    private let timer = TimerService()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         nowPlaying.start()
-        controller = IslandController(nowPlaying: nowPlaying)
+        controller = IslandController(nowPlaying: nowPlaying, timer: timer)
+    }
+
+    /// Handles `macisland://timer?minutes=25` (or `seconds=90`) so Raycast, Shortcuts
+    /// or `open` in a terminal can start a timer.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme == "macisland" && url.host == "timer" {
+            let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            let minutes = query.first { $0.name == "minutes" }?.value.flatMap(Double.init) ?? 0
+            let seconds = query.first { $0.name == "seconds" }?.value.flatMap(Double.init) ?? 0
+            timer.start(duration: minutes * 60 + seconds)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

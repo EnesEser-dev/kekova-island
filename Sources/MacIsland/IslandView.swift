@@ -4,6 +4,7 @@ import SwiftUI
 struct IslandView: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject var nowPlaying: NowPlayingService
+    @ObservedObject var timer: TimerService
 
     var body: some View {
         VStack(spacing: 0) {
@@ -12,13 +13,12 @@ struct IslandView: View {
                     .fill(.black)
 
                 if model.isExpanded {
-                    ExpandedContent(nowPlaying: nowPlaying)
-                        .padding(.top, model.notchSize.height + 8)
+                    ExpandedContent(model: model, nowPlaying: nowPlaying, timer: timer)
                         .padding(.horizontal, IslandShape.earRadius + 22)
                         .padding(.bottom, 16)
                         .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .top)))
-                } else if model.isCompactVisible, let info = nowPlaying.info {
-                    CompactNowPlaying(info: info, notchSize: model.notchSize, wingWidth: model.compactWingWidth)
+                } else if model.isCompactVisible {
+                    CompactContent(model: model, nowPlaying: nowPlaying, timer: timer)
                         .padding(.horizontal, IslandShape.earRadius)
                         .transition(.opacity)
                 }
@@ -63,23 +63,49 @@ struct IslandShape: Shape {
 
 // MARK: - Compact
 
-private struct CompactNowPlaying: View {
-    let info: NowPlayingInfo
-    let notchSize: CGSize
-    let wingWidth: CGFloat
+private struct CompactContent: View {
+    @ObservedObject var model: IslandViewModel
+    @ObservedObject var nowPlaying: NowPlayingService
+    @ObservedObject var timer: TimerService
 
     var body: some View {
-        let artSize = notchSize.height - 12
+        let artSize = model.notchSize.height - 12
         HStack(spacing: 0) {
-            Artwork(image: info.artwork, cornerRadius: 5)
-                .frame(width: artSize, height: artSize)
-                .frame(width: wingWidth)
-            Spacer(minLength: notchSize.width)
-            EqualizerBars(color: Color(nsColor: info.accentColor), isAnimating: info.isPlaying)
-                .frame(width: artSize * 0.8, height: artSize * 0.6)
-                .frame(width: wingWidth)
+            Group {
+                if let info = nowPlaying.info {
+                    Artwork(image: info.artwork, cornerRadius: 5)
+                        .frame(width: artSize, height: artSize)
+                } else {
+                    Image(systemName: "timer")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(TimerCard.accent)
+                }
+            }
+            .frame(width: model.compactWingWidth)
+
+            Spacer(minLength: model.notchSize.width)
+
+            Group {
+                if timer.state.isActive {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(formatDuration(timer.remaining(at: context.date).rounded(.up)))
+                            .font(.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(TimerCard.accent)
+                            .opacity(isPaused ? 0.5 : 1)
+                    }
+                } else if let info = nowPlaying.info {
+                    EqualizerBars(color: Color(nsColor: info.accentColor), isAnimating: info.isPlaying)
+                        .frame(width: artSize * 0.8, height: artSize * 0.6)
+                }
+            }
+            .frame(width: model.compactWingWidth)
         }
-        .frame(height: notchSize.height)
+        .frame(height: model.notchSize.height)
+    }
+
+    private var isPaused: Bool {
+        if case .paused = timer.state { return true }
+        return false
     }
 }
 
@@ -110,13 +136,63 @@ private struct EqualizerBars: View {
 // MARK: - Expanded
 
 private struct ExpandedContent: View {
+    @ObservedObject var model: IslandViewModel
     @ObservedObject var nowPlaying: NowPlayingService
+    @ObservedObject var timer: TimerService
 
     var body: some View {
-        if let info = nowPlaying.info {
-            NowPlayingCard(info: info, nowPlaying: nowPlaying)
-        } else {
-            ClockCard()
+        VStack(spacing: 0) {
+            Header(model: model)
+                .frame(height: model.notchSize.height)
+            Group {
+                switch model.selectedTab {
+                case .music:
+                    if let info = nowPlaying.info {
+                        NowPlayingCard(info: info, nowPlaying: nowPlaying)
+                    } else {
+                        ClockCard()
+                    }
+                case .timer:
+                    TimerCard(timer: timer)
+                }
+            }
+            .frame(maxHeight: .infinity)
+        }
+    }
+}
+
+/// Sits in the band beside the hardware notch: tabs on the left, quit on the right.
+private struct Header: View {
+    @ObservedObject var model: IslandViewModel
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(IslandTab.allCases, id: \.self) { tab in
+                Button {
+                    withAnimation(.snappy(duration: 0.2)) { model.selectedTab = tab }
+                } label: {
+                    Image(systemName: tab.symbolName)
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 30, height: 22)
+                        .background(
+                            .white.opacity(model.selectedTab == tab ? 0.16 : 0),
+                            in: Capsule()
+                        )
+                        .foregroundStyle(.white.opacity(model.selectedTab == tab ? 1 : 0.5))
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: model.notchSize.width + 16)
+            Button {
+                NSApp.terminate(nil)
+            } label: {
+                Image(systemName: "power")
+                    .font(.system(size: 11, weight: .semibold))
+                    .frame(width: 22, height: 22)
+                    .foregroundStyle(.white.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+            .help("Quit MacIsland")
         }
     }
 }
@@ -174,7 +250,7 @@ private struct ProgressRow: View {
             let elapsed = info.elapsed(at: context.date)
             let fraction = info.duration > 0 ? elapsed / info.duration : 0
             HStack(spacing: 10) {
-                Text(Self.format(elapsed))
+                Text(formatDuration(elapsed))
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.15))
@@ -182,16 +258,11 @@ private struct ProgressRow: View {
                     }
                 }
                 .frame(height: 5)
-                Text(Self.format(info.duration))
+                Text(formatDuration(info.duration))
             }
             .font(.system(size: 11, weight: .medium).monospacedDigit())
             .foregroundStyle(.white.opacity(0.6))
         }
-    }
-
-    private static func format(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds.rounded(.down))
-        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
 
@@ -220,20 +291,23 @@ private struct Artwork: View {
     let cornerRadius: CGFloat
 
     var body: some View {
-        Group {
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                ZStack {
-                    Color.white.opacity(0.12)
-                    Image(systemName: "music.note")
-                        .foregroundStyle(.white.opacity(0.6))
+        // Color.clear takes the size the caller gives us; the image fills it and gets
+        // clipped, so wide video thumbnails show their center instead of overflowing.
+        Color.clear
+            .overlay {
+                if let image {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    ZStack {
+                        Color.white.opacity(0.12)
+                        Image(systemName: "music.note")
+                            .foregroundStyle(.white.opacity(0.6))
+                    }
                 }
             }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 
@@ -250,17 +324,18 @@ private struct ClockCard: View {
                 }
             }
             Spacer()
-            Button {
-                NSApp.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-                    .font(.system(size: 14, weight: .semibold))
-                    .frame(width: 30, height: 30)
-                    .background(.white.opacity(0.12), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .help("Quit MacIsland")
         }
         .foregroundStyle(.white)
     }
+}
+
+func formatDuration(_ seconds: TimeInterval) -> String {
+    let total = Int(seconds.rounded(.down))
+    let hours = total / 3600
+    let minutes = total / 60 % 60
+    let secs = total % 60
+    if hours > 0 {
+        return String(format: "%d:%02d:%02d", hours, minutes, secs)
+    }
+    return String(format: "%d:%02d", minutes, secs)
 }
