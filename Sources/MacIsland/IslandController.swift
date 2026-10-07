@@ -27,6 +27,7 @@ enum IslandTab {
 enum IslandBanner: Equatable {
     case charging(level: Int)
     case headphones(HeadphoneInfo)
+    case screenshot
 }
 
 struct IslandServices {
@@ -35,6 +36,7 @@ struct IslandServices {
     let shelf: ShelfStore
     let calendar: CalendarService
     let launchAtLogin: LaunchAtLogin
+    let screenshots: ScreenshotWatcher
 }
 
 final class IslandViewModel: ObservableObject {

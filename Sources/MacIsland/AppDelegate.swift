@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let launchAtLogin = LaunchAtLogin()
     private let power = PowerMonitor()
     private let headphones = HeadphoneMonitor()
+    private let screenshots = ScreenshotWatcher()
     private var signalSources: [DispatchSourceSignal] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -21,7 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             timer: timer,
             shelf: shelf,
             calendar: calendar,
-            launchAtLogin: launchAtLogin
+            launchAtLogin: launchAtLogin,
+            screenshots: screenshots
         ))
         self.controller = controller
 
@@ -34,16 +36,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         calendar.onReminder = { [weak controller] _ in
             controller?.showMeetingReminder()
         }
+        screenshots.onScreenshot = { [weak controller, shelf] url in
+            shelf.add([url])
+            controller?.showBanner(.screenshot)
+        }
 
         handleTerminationSignals()
         nowPlaying.start()
         power.start()
         headphones.start()
         calendar.start()
+        screenshots.start()
     }
 
     /// `macisland://timer?minutes=25` (or `seconds=90`) starts a timer from Raycast,
-    /// Shortcuts or `open` in a terminal. `macisland://preview/charging|headphones|meeting`
+    /// Shortcuts or `open` in a terminal. `macisland://preview/charging|headphones|screenshot|meeting`
     /// shows a notice without needing the real event, handy for testing and demos.
     func application(_ application: NSApplication, open urls: [URL]) {
         for url in urls where url.scheme == "macisland" {
@@ -57,6 +64,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controller?.showBanner(.charging(level: PowerMonitor.readState()?.level ?? 80))
             case ("preview", "headphones"):
                 controller?.showBanner(.headphones(HeadphoneInfo(name: "AirPods Pro", symbolName: "airpodspro", batteryLevel: 92)))
+            case ("preview", "screenshot"):
+                controller?.showBanner(.screenshot)
             case ("preview", "meeting"):
                 controller?.showMeetingReminder()
             default:

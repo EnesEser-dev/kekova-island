@@ -165,7 +165,7 @@ private struct ExpandedContent: View {
                 case .shelf:
                     ShelfCard(shelf: services.shelf, isDropTargeted: isDropTargeted)
                 case .settings:
-                    SettingsCard(launchAtLogin: services.launchAtLogin)
+                    SettingsCard(launchAtLogin: services.launchAtLogin, screenshots: services.screenshots)
                 }
             }
             .frame(maxHeight: .infinity)

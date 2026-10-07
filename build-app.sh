@@ -36,5 +36,13 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-codesign --force --sign - "$APP"
+# A stable identity keeps macOS privacy permissions (Calendar, Downloads...) across
+# rebuilds; ad-hoc signatures change every build, so macOS would ask again each time.
+IDENTITY="MacIsland Local Signing"
+if security find-identity -p codesigning | grep -q "$IDENTITY"; then
+    codesign --force --sign "$IDENTITY" "$APP"
+else
+    echo "Signing ad-hoc (no \"$IDENTITY\" certificate); permissions will be asked again after each rebuild."
+    codesign --force --sign - "$APP"
+fi
 echo "Built $APP"

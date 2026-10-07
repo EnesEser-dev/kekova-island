@@ -39,6 +39,9 @@ struct BannerContent: View {
                 .font(.system(size: 14))
             Text(info.name)
                 .truncationMode(.tail)
+        case .screenshot:
+            Image(systemName: "camera.viewfinder")
+            Text("Screenshot")
         }
     }
 
@@ -59,6 +62,10 @@ struct BannerContent: View {
                 Text("Connected")
                     .foregroundStyle(.white.opacity(0.6))
             }
+        case .screenshot:
+            Text("On shelf")
+                .foregroundStyle(.white.opacity(0.6))
+            Image(systemName: "tray.full.fill")
         }
     }
 }

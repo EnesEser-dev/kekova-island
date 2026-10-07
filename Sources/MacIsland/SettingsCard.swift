@@ -3,6 +3,7 @@ import SwiftUI
 
 struct SettingsCard: View {
     @ObservedObject var launchAtLogin: LaunchAtLogin
+    @ObservedObject var screenshots: ScreenshotWatcher
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -29,6 +30,16 @@ struct SettingsCard: View {
                     .buttonStyle(.plain)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(.orange)
+            }
+
+            HStack {
+                Text("Add screenshots to shelf")
+                    .font(.system(size: 14, weight: .semibold))
+                Spacer()
+                Toggle("", isOn: $screenshots.isEnabled)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .tint(.green)
             }
 
             Spacer(minLength: 0)
