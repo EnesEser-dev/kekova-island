@@ -2,16 +2,21 @@ import AppKit
 import Combine
 import SwiftUI
 
-enum IslandTab: CaseIterable {
+enum IslandTab {
     case music
     case timer
     case shelf
+    case settings
+
+    /// Tabs shown on the left of the header; settings lives behind the gear on the right.
+    static let leading: [IslandTab] = [.music, .timer, .shelf]
 
     var symbolName: String {
         switch self {
         case .music: "music.note"
         case .timer: "timer"
         case .shelf: "tray.full"
+        case .settings: "gearshape"
         }
     }
 }
@@ -58,6 +63,7 @@ final class IslandController {
     private let nowPlaying: NowPlayingService
     private let timer: TimerService
     private let shelf: ShelfStore
+    private let launchAtLogin: LaunchAtLogin
     private var subscriptions: Set<AnyCancellable> = []
     private let panel = IslandPanel(
         contentRect: .zero,
@@ -82,10 +88,11 @@ final class IslandController {
     private var dragStartedInside = false
     private var isDraggingFiles = false
 
-    init(nowPlaying: NowPlayingService, timer: TimerService, shelf: ShelfStore) {
+    init(nowPlaying: NowPlayingService, timer: TimerService, shelf: ShelfStore, launchAtLogin: LaunchAtLogin) {
         self.nowPlaying = nowPlaying
         self.timer = timer
         self.shelf = shelf
+        self.launchAtLogin = launchAtLogin
         // @Published emits in willSet; hopping to the next runloop turn lets the value land
         // first. Reacting synchronously made SwiftUI render the old state and then never
         // re-render the timer card (presets "did nothing").
@@ -122,7 +129,7 @@ final class IslandController {
         panel.level = .mainMenu + 3
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         panel.ignoresMouseEvents = true
-        panel.contentView = FirstClickHostingView(rootView: IslandView(model: model, nowPlaying: nowPlaying, timer: timer, shelf: shelf))
+        panel.contentView = FirstClickHostingView(rootView: IslandView(model: model, nowPlaying: nowPlaying, timer: timer, shelf: shelf, launchAtLogin: launchAtLogin))
     }
 
     private func placeOnScreen() {

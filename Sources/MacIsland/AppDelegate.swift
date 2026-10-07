@@ -5,10 +5,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let nowPlaying = NowPlayingService()
     private let timer = TimerService()
     private let shelf = ShelfStore()
+    private let launchAtLogin = LaunchAtLogin()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Only an installed copy should register; a dev build under build/ gets wiped on rebuild.
+        if Bundle.main.bundlePath.contains("/Applications/") {
+            launchAtLogin.enableOnFirstLaunch()
+        }
         nowPlaying.start()
-        controller = IslandController(nowPlaying: nowPlaying, timer: timer, shelf: shelf)
+        controller = IslandController(
+            nowPlaying: nowPlaying,
+            timer: timer,
+            shelf: shelf,
+            launchAtLogin: launchAtLogin
+        )
     }
 
     /// Handles `macisland://timer?minutes=25` (or `seconds=90`) so Raycast, Shortcuts

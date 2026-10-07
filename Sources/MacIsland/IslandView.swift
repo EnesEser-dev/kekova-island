@@ -6,6 +6,7 @@ struct IslandView: View {
     @ObservedObject var nowPlaying: NowPlayingService
     @ObservedObject var timer: TimerService
     @ObservedObject var shelf: ShelfStore
+    let launchAtLogin: LaunchAtLogin
 
     var body: some View {
         VStack(spacing: 0) {
@@ -14,7 +15,13 @@ struct IslandView: View {
                     .fill(.black)
 
                 if model.isExpanded {
-                    ExpandedContent(model: model, nowPlaying: nowPlaying, timer: timer, shelf: shelf)
+                    ExpandedContent(
+                        model: model,
+                        nowPlaying: nowPlaying,
+                        timer: timer,
+                        shelf: shelf,
+                        launchAtLogin: launchAtLogin
+                    )
                         .padding(.horizontal, IslandShape.earRadius + 22)
                         .padding(.bottom, 16)
                         .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .top)))
@@ -141,6 +148,7 @@ private struct ExpandedContent: View {
     @ObservedObject var nowPlaying: NowPlayingService
     @ObservedObject var timer: TimerService
     @ObservedObject var shelf: ShelfStore
+    let launchAtLogin: LaunchAtLogin
 
     @State private var isDropTargeted = false
 
@@ -160,6 +168,8 @@ private struct ExpandedContent: View {
                     TimerCard(timer: timer)
                 case .shelf:
                     ShelfCard(shelf: shelf, isDropTargeted: isDropTargeted)
+                case .settings:
+                    SettingsCard(launchAtLogin: launchAtLogin)
                 }
             }
             .frame(maxHeight: .infinity)
@@ -177,39 +187,35 @@ private struct ExpandedContent: View {
     }
 }
 
-/// Sits in the band beside the hardware notch: tabs on the left, quit on the right.
+/// Sits in the band beside the hardware notch: tabs on the left, settings on the right.
 private struct Header: View {
     @ObservedObject var model: IslandViewModel
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(IslandTab.allCases, id: \.self) { tab in
-                Button {
-                    withAnimation(.snappy(duration: 0.2)) { model.selectedTab = tab }
-                } label: {
-                    Image(systemName: tab.symbolName)
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 30, height: 22)
-                        .background(
-                            .white.opacity(model.selectedTab == tab ? 0.16 : 0),
-                            in: Capsule()
-                        )
-                        .foregroundStyle(.white.opacity(model.selectedTab == tab ? 1 : 0.5))
-                }
-                .buttonStyle(.plain)
+            ForEach(IslandTab.leading, id: \.self) { tab in
+                tabButton(tab)
             }
             Spacer(minLength: model.notchSize.width + 16)
-            Button {
-                NSApp.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-                    .font(.system(size: 11, weight: .semibold))
-                    .frame(width: 22, height: 22)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-            .buttonStyle(.plain)
-            .help("Quit MacIsland")
+            tabButton(.settings)
+                .help("Settings")
         }
+    }
+
+    private func tabButton(_ tab: IslandTab) -> some View {
+        Button {
+            withAnimation(.snappy(duration: 0.2)) { model.selectedTab = tab }
+        } label: {
+            Image(systemName: tab.symbolName)
+                .font(.system(size: 12, weight: .semibold))
+                .frame(width: 30, height: 22)
+                .background(
+                    .white.opacity(model.selectedTab == tab ? 0.16 : 0),
+                    in: Capsule()
+                )
+                .foregroundStyle(.white.opacity(model.selectedTab == tab ? 1 : 0.5))
+        }
+        .buttonStyle(.plain)
     }
 }
 
