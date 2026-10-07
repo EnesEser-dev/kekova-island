@@ -52,7 +52,7 @@ final class NowPlayingService: ObservableObject {
 
     func start() {
         guard let scriptPath, let frameworkPath else {
-            NSLog("MacIsland: mediaremote-adapter is missing from the app bundle")
+            NSLog("Kekova Island: mediaremote-adapter is missing from the app bundle")
             return
         }
         isStopping = false
@@ -79,7 +79,7 @@ final class NowPlayingService: ObservableObject {
         do {
             try process.run()
         } catch {
-            NSLog("MacIsland: failed to start now playing stream: \(error)")
+            NSLog("Kekova Island: failed to start now playing stream: \(error)")
             return
         }
         streamProcess = process

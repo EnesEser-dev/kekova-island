@@ -49,11 +49,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         screenshots.start()
     }
 
-    /// `macisland://timer?minutes=25` (or `seconds=90`) starts a timer from Raycast,
-    /// Shortcuts or `open` in a terminal. `macisland://preview/charging|headphones|screenshot|meeting`
+    /// `kekova://timer?minutes=25` (or `seconds=90`) starts a timer from Raycast,
+    /// Shortcuts or `open` in a terminal. `kekova://preview/charging|headphones|screenshot|meeting`
     /// shows a notice without needing the real event, handy for testing and demos.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "macisland" {
+        for url in urls where url.scheme == "kekova" {
             switch (url.host, url.lastPathComponent) {
             case ("timer", _):
                 let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []

@@ -45,7 +45,7 @@ struct SettingsCard: View {
             Spacer(minLength: 0)
 
             HStack {
-                Text("MacIsland \(Bundle.main.shortVersion)")
+                Text("Kekova Island \(Bundle.main.shortVersion)")
                     .font(.system(size: 11))
                     .foregroundStyle(.white.opacity(0.4))
                 Spacer()

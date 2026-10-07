@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "MacIsland",
+    name: "KekovaIsland",
     platforms: [.macOS("15.0")],
     targets: [
-        .executableTarget(name: "MacIsland", path: "Sources/MacIsland")
+        .executableTarget(name: "KekovaIsland", path: "Sources/KekovaIsland")
     ]
 )
