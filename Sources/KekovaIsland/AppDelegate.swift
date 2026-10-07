@@ -49,6 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         screenshots.start()
     }
 
+    /// `kekova://open/music|timer|calendar|shelf|settings` and `kekova://close` toggle the island.
     /// `kekova://timer?minutes=25` (or `seconds=90`) starts a timer from Raycast,
     /// Shortcuts or `open` in a terminal. `kekova://preview/charging|headphones|screenshot|meeting`
     /// shows a notice without needing the real event, handy for testing and demos.
@@ -64,6 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 controller?.showBanner(.charging(level: PowerMonitor.readState()?.level ?? 80))
             case ("preview", "headphones"):
                 controller?.showBanner(.headphones(HeadphoneInfo(name: "AirPods Pro", symbolName: "airpodspro", batteryLevel: 92)))
+            case ("open", let name):
+                controller?.open(tab: IslandTab(urlName: name) ?? .music)
+            case ("close", _):
+                controller?.close()
             case ("preview", "screenshot"):
                 controller?.showBanner(.screenshot)
             case ("preview", "meeting"):

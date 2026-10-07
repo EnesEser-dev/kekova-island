@@ -2,7 +2,7 @@
 
 Turn the MacBook notch into something you can actually use: music, timers, a file shelf, your next meeting and little live notices, all growing out of the notch the way the Dynamic Island does on iPhone.
 
-<!-- TODO: add a screenshot or GIF here, e.g. docs/demo.gif -->
+<p align="center"><img src="docs/demo.gif" alt="Kekova Island: now playing, charging notice, timer countdown and headphones notice" width="800"></p>
 
 > **Why "Kekova"?** Kekova is a small island off Turkey's Mediterranean coast, known for the ruins of a sunken city just below its turquoise water. A notch island seemed like a good place to borrow the name from.
 
@@ -69,6 +69,13 @@ Start a timer from Raycast, Shortcuts or a terminal:
 ```sh
 open "kekova://timer?minutes=25"
 open "kekova://timer?seconds=90"
+```
+
+Open or close the island, for example from a keyboard shortcut:
+
+```sh
+open kekova://open/music     # also: timer, calendar, shelf, settings
+open kekova://close
 ```
 
 Preview the notices without waiting for the real event:

@@ -12,6 +12,17 @@ enum IslandTab {
     /// Tabs shown on the left of the header; settings lives behind the gear on the right.
     static let leading: [IslandTab] = [.music, .timer, .calendar, .shelf]
 
+    init?(urlName: String) {
+        switch urlName {
+        case "music": self = .music
+        case "timer": self = .timer
+        case "calendar": self = .calendar
+        case "shelf": self = .shelf
+        case "settings": self = .settings
+        default: return nil
+        }
+    }
+
     var symbolName: String {
         switch self {
         case .music: "music.note"
@@ -82,6 +93,7 @@ final class IslandController {
     private static let bannerDuration: TimeInterval = 3
     private static let timerFinishedDuration: TimeInterval = 10
     private static let meetingReminderDuration: TimeInterval = 30
+    private static let openedFromURLDuration: TimeInterval = 10
     private static let openAnimation = Animation.spring(response: 0.42, dampingFraction: 0.8)
     private static let closeAnimation = Animation.spring(response: 0.35, dampingFraction: 0.9)
 
@@ -156,6 +168,17 @@ final class IslandController {
         }
         pendingBannerHide = work
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.bannerDuration, execute: work)
+    }
+
+    /// Opened from a URL (Raycast, Shortcuts...) the mouse is usually elsewhere, so keep
+    /// the island open until the mouse visits it or the timeout passes.
+    func open(tab: IslandTab) {
+        pin(tab: tab, for: Self.openedFromURLDuration)
+    }
+
+    func close() {
+        releasePin()
+        collapse()
     }
 
     func showMeetingReminder() {
@@ -334,10 +357,12 @@ final class IslandController {
 
     private func handleTimerChange(_ state: TimerState) {
         withAnimation(Self.openAnimation) { model.hasTimer = state.isActive }
+        let wasFinished = pendingTimerReset != nil
         pendingTimerReset?.cancel()
         pendingTimerReset = nil
         guard state == .finished else {
-            if model.selectedTab == .timer { unpin() }
+            // Leaving "Time's up" ends its pin; other timer changes keep the island as is.
+            if wasFinished { unpin() }
             return
         }
         pin(tab: .timer, for: Self.timerFinishedDuration)
