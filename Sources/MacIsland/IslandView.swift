@@ -3,10 +3,7 @@ import SwiftUI
 
 struct IslandView: View {
     @ObservedObject var model: IslandViewModel
-    @ObservedObject var nowPlaying: NowPlayingService
-    @ObservedObject var timer: TimerService
-    @ObservedObject var shelf: ShelfStore
-    let launchAtLogin: LaunchAtLogin
+    let services: IslandServices
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,18 +12,17 @@ struct IslandView: View {
                     .fill(.black)
 
                 if model.isExpanded {
-                    ExpandedContent(
-                        model: model,
-                        nowPlaying: nowPlaying,
-                        timer: timer,
-                        shelf: shelf,
-                        launchAtLogin: launchAtLogin
-                    )
+                    ExpandedContent(model: model, nowPlaying: services.nowPlaying, services: services)
                         .padding(.horizontal, IslandShape.earRadius + 22)
                         .padding(.bottom, 16)
                         .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .top)))
+                } else if let banner = model.banner {
+                    BannerContent(banner: banner, notchWidth: model.notchSize.width, wingWidth: model.bannerWingWidth)
+                        .padding(.horizontal, IslandShape.earRadius)
+                        .frame(height: model.notchSize.height)
+                        .transition(.opacity)
                 } else if model.isCompactVisible {
-                    CompactContent(model: model, nowPlaying: nowPlaying, timer: timer)
+                    CompactContent(model: model, nowPlaying: services.nowPlaying, timer: services.timer)
                         .padding(.horizontal, IslandShape.earRadius)
                         .transition(.opacity)
                 }
@@ -146,9 +142,7 @@ private struct EqualizerBars: View {
 private struct ExpandedContent: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject var nowPlaying: NowPlayingService
-    @ObservedObject var timer: TimerService
-    @ObservedObject var shelf: ShelfStore
-    let launchAtLogin: LaunchAtLogin
+    let services: IslandServices
 
     @State private var isDropTargeted = false
 
@@ -165,11 +159,13 @@ private struct ExpandedContent: View {
                         ClockCard()
                     }
                 case .timer:
-                    TimerCard(timer: timer)
+                    TimerCard(timer: services.timer)
+                case .calendar:
+                    CalendarCard(calendar: services.calendar)
                 case .shelf:
-                    ShelfCard(shelf: shelf, isDropTargeted: isDropTargeted)
+                    ShelfCard(shelf: services.shelf, isDropTargeted: isDropTargeted)
                 case .settings:
-                    SettingsCard(launchAtLogin: launchAtLogin)
+                    SettingsCard(launchAtLogin: services.launchAtLogin)
                 }
             }
             .frame(maxHeight: .infinity)
@@ -178,7 +174,7 @@ private struct ExpandedContent: View {
         .contentShape(Rectangle())
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
             model.selectedTab = .shelf
-            loadFileURLs(from: providers) { shelf.add($0) }
+            loadFileURLs(from: providers) { services.shelf.add($0) }
             return true
         }
         .onChange(of: isDropTargeted) { _, isTargeted in

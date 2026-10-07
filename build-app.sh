@@ -23,6 +23,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleShortVersionString</key><string>0.1</string>
     <key>LSMinimumSystemVersion</key><string>15.0</string>
     <key>LSUIElement</key><true/>
+    <key>NSCalendarsFullAccessUsageDescription</key><string>MacIsland shows your upcoming events and reminds you a few minutes before they start.</string>
+    <key>NSBluetoothAlwaysUsageDescription</key><string>MacIsland shows a notice with battery level when your headphones connect.</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
