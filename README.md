@@ -25,11 +25,23 @@ Turn the MacBook notch into something you can actually use: music, timers, a fil
 
 - macOS 15 or later
 - A MacBook with a notch. On other displays a notch-sized island is drawn at the top of the screen.
-- Xcode Command Line Tools to build (`xcode-select --install`). Full Xcode is not needed.
+- To build from source: Xcode Command Line Tools (`xcode-select --install`). Full Xcode is not needed.
 
 ## Install
 
-There is no prebuilt release yet, so build it from source:
+### Download
+
+1. Download `KekovaIsland-<version>.zip` from the [latest release](https://github.com/EnesEser-dev/kekova-island/releases/latest) and unzip it.
+2. Move `KekovaIsland.app` to `~/Applications` (or `/Applications`).
+3. The app isn't notarized by Apple, so macOS refuses to open it at first. Clear the download flag once:
+   ```sh
+   xattr -dr com.apple.quarantine ~/Applications/KekovaIsland.app
+   ```
+4. Open it. It appears in the notch, not in the Dock.
+
+Release builds are for Apple Silicon, which every MacBook with a notch has.
+
+### Build from source
 
 ```sh
 git clone https://github.com/EnesEser-dev/kekova-island.git
