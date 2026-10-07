@@ -4,10 +4,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var controller: IslandController?
     private let nowPlaying = NowPlayingService()
     private let timer = TimerService()
+    private let shelf = ShelfStore()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         nowPlaying.start()
-        controller = IslandController(nowPlaying: nowPlaying, timer: timer)
+        controller = IslandController(nowPlaying: nowPlaying, timer: timer, shelf: shelf)
     }
 
     /// Handles `macisland://timer?minutes=25` (or `seconds=90`) so Raycast, Shortcuts

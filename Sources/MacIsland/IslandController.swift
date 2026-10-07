@@ -5,11 +5,13 @@ import SwiftUI
 enum IslandTab: CaseIterable {
     case music
     case timer
+    case shelf
 
     var symbolName: String {
         switch self {
         case .music: "music.note"
         case .timer: "timer"
+        case .shelf: "tray.full"
         }
     }
 }
@@ -55,6 +57,7 @@ final class IslandController {
     private let model = IslandViewModel()
     private let nowPlaying: NowPlayingService
     private let timer: TimerService
+    private let shelf: ShelfStore
     private var subscriptions: Set<AnyCancellable> = []
     private let panel = IslandPanel(
         contentRect: .zero,
@@ -72,9 +75,17 @@ final class IslandController {
     private var pendingDismiss: DispatchWorkItem?
     private static let finishedDismissDelay: TimeInterval = 10
 
-    init(nowPlaying: NowPlayingService, timer: TimerService) {
+    private let dragPasteboard = NSPasteboard(name: .drag)
+    /// Drag pasteboard changeCount when the mouse went down; nil while the button is up.
+    /// A different count during the press means a drag session is carrying something.
+    private var dragBaseline: Int?
+    private var dragStartedInside = false
+    private var isDraggingFiles = false
+
+    init(nowPlaying: NowPlayingService, timer: TimerService, shelf: ShelfStore) {
         self.nowPlaying = nowPlaying
         self.timer = timer
+        self.shelf = shelf
         // @Published emits in willSet; hopping to the next runloop turn lets the value land
         // first. Reacting synchronously made SwiftUI render the old state and then never
         // re-render the timer card (presets "did nothing").
@@ -111,7 +122,7 @@ final class IslandController {
         panel.level = .mainMenu + 3
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         panel.ignoresMouseEvents = true
-        panel.contentView = FirstClickHostingView(rootView: IslandView(model: model, nowPlaying: nowPlaying, timer: timer))
+        panel.contentView = FirstClickHostingView(rootView: IslandView(model: model, nowPlaying: nowPlaying, timer: timer, shelf: shelf))
     }
 
     private func placeOnScreen() {
@@ -144,15 +155,48 @@ final class IslandController {
 
     private func pollMouse() {
         let location = NSEvent.mouseLocation
+        updateDragState(at: location)
         guard location != lastMouseLocation else { return }
         lastMouseLocation = location
         handleMouseMove(at: location)
     }
 
+    private func updateDragState(at location: CGPoint) {
+        let isMouseDown = NSEvent.pressedMouseButtons & 1 != 0
+        if isMouseDown, dragBaseline == nil {
+            dragBaseline = dragPasteboard.changeCount
+            dragStartedInside = model.isExpanded && hitRect().contains(location)
+        } else if isMouseDown, let baseline = dragBaseline, !isDraggingFiles {
+            isDraggingFiles = dragPasteboard.changeCount != baseline
+                && dragPasteboard.types?.contains(.fileURL) == true
+        } else if !isMouseDown, dragBaseline != nil {
+            finishDrag(at: location)
+        }
+    }
+
+    private func finishDrag(at location: CGPoint) {
+        let wasDraggingOut = isDraggingFiles && dragStartedInside
+        dragBaseline = nil
+        dragStartedInside = false
+        isDraggingFiles = false
+        guard wasDraggingOut else { return }
+        // A file dragged out to Finder on the same volume gets moved; give Finder a
+        // moment, then drop shelf entries whose files are gone.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.shelf.refresh() }
+        if !hitRect().contains(location) && !isPinnedOpen { collapse() }
+    }
+
     private func handleMouseMove(at location: CGPoint) {
         let isInside = hitRect().contains(location)
         if model.isExpanded {
-            if !isInside && !isPinnedOpen { collapse() }
+            // Dragging a file out of the shelf: stay open so the drag source stays alive.
+            let isDraggingOut = isDraggingFiles && dragStartedInside
+            if !isInside && !isPinnedOpen && !isDraggingOut { collapse() }
+            return
+        }
+        if isDraggingFiles && dropZoneRect().contains(location) {
+            model.selectedTab = .shelf
+            expand()
             return
         }
         if isInside {
@@ -180,6 +224,12 @@ final class IslandController {
             width: size.width + 2 * slack,
             height: size.height + slack + 1
         )
+    }
+
+    /// Generous area around the notch so a file dragged roughly toward it opens the shelf.
+    private func dropZoneRect() -> CGRect {
+        let rect = hitRect()
+        return rect.insetBy(dx: -50, dy: -40).offsetBy(dx: 0, dy: 40)
     }
 
     private func scheduleOpen() {

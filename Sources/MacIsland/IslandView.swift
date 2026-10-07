@@ -5,6 +5,7 @@ struct IslandView: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject var nowPlaying: NowPlayingService
     @ObservedObject var timer: TimerService
+    @ObservedObject var shelf: ShelfStore
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,7 +14,7 @@ struct IslandView: View {
                     .fill(.black)
 
                 if model.isExpanded {
-                    ExpandedContent(model: model, nowPlaying: nowPlaying, timer: timer)
+                    ExpandedContent(model: model, nowPlaying: nowPlaying, timer: timer, shelf: shelf)
                         .padding(.horizontal, IslandShape.earRadius + 22)
                         .padding(.bottom, 16)
                         .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .top)))
@@ -139,6 +140,9 @@ private struct ExpandedContent: View {
     @ObservedObject var model: IslandViewModel
     @ObservedObject var nowPlaying: NowPlayingService
     @ObservedObject var timer: TimerService
+    @ObservedObject var shelf: ShelfStore
+
+    @State private var isDropTargeted = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -154,9 +158,21 @@ private struct ExpandedContent: View {
                     }
                 case .timer:
                     TimerCard(timer: timer)
+                case .shelf:
+                    ShelfCard(shelf: shelf, isDropTargeted: isDropTargeted)
                 }
             }
             .frame(maxHeight: .infinity)
+        }
+        // The whole island accepts drops, whichever tab is showing.
+        .contentShape(Rectangle())
+        .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+            model.selectedTab = .shelf
+            loadFileURLs(from: providers) { shelf.add($0) }
+            return true
+        }
+        .onChange(of: isDropTargeted) { _, isTargeted in
+            if isTargeted { model.selectedTab = .shelf }
         }
     }
 }

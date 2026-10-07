@@ -9,7 +9,7 @@ OUT="${1:-build/MediaRemoteAdapter.framework}"
 rm -rf "$OUT"
 mkdir -p "$OUT/Resources"
 
-clang -dynamiclib -arch arm64 -mmacosx-version-min=14.0 \
+clang -dynamiclib -arch arm64 -mmacosx-version-min=15.0 \
     -fobjc-arc -fvisibility=default \
     -I "$SRC/include" -I "$SRC/src" \
     -framework Foundation -framework AppKit -framework UniformTypeIdentifiers \

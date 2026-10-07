@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "MacIsland",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS("15.0")],
     targets: [
         .executableTarget(name: "MacIsland", path: "Sources/MacIsland")
     ]
